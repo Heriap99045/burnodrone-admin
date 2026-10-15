@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { Product } from "@/lib/types";
 import { getProducts } from "@/lib/products";
@@ -13,7 +13,7 @@ import {
   type ProductInput,
 } from "@/lib/admin-api";
 
-const CATEGORIES = [
+const BASE_CATEGORIES = [
   "Flight Controller",
   "Camera & Gimbal",
   "GPS & Navigation",
@@ -21,9 +21,11 @@ const CATEGORIES = [
   "Propulsion & Motor",
 ];
 
+const NEW_CATEGORY = "__new__";
+
 const emptyForm: ProductInput = {
   name: "",
-  category: CATEGORIES[0],
+  category: BASE_CATEGORIES[0],
   specs: "",
   price: "",
   image: "",
@@ -172,6 +174,16 @@ function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [uploading, setUploading] = useState(false);
+  const [customCategory, setCustomCategory] = useState(false);
+
+  // Kategori bawaan + semua kategori yang sudah dipakai produk di database.
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([...BASE_CATEGORIES, ...products.map((p) => p.category)]),
+      ),
+    [products],
+  );
 
   useEffect(() => {
     let active = true;
@@ -218,6 +230,7 @@ function Dashboard() {
   }
 
   function startEdit(p: Product) {
+    setCustomCategory(false);
     setEditingId(p.id);
     setForm({
       name: p.name,
@@ -232,6 +245,7 @@ function Dashboard() {
   }
 
   function cancelEdit() {
+    setCustomCategory(false);
     setEditingId(null);
     setForm(emptyForm);
   }
@@ -295,17 +309,38 @@ function Dashboard() {
             onChange={(e) => setField("name", e.target.value)}
             className={inputClass}
           />
-          <select
-            value={form.category}
-            onChange={(e) => setField("category", e.target.value)}
-            className={inputClass}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <div className="space-y-2">
+            <select
+              value={customCategory ? NEW_CATEGORY : form.category}
+              onChange={(e) => {
+                if (e.target.value === NEW_CATEGORY) {
+                  setCustomCategory(true);
+                  setField("category", "");
+                } else {
+                  setCustomCategory(false);
+                  setField("category", e.target.value);
+                }
+              }}
+              className={inputClass}
+            >
+              {categoryOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value={NEW_CATEGORY}>+ Kategori baru...</option>
+            </select>
+            {customCategory && (
+              <input
+                required
+                autoFocus
+                placeholder="Nama kategori baru"
+                value={form.category}
+                onChange={(e) => setField("category", e.target.value)}
+                className={inputClass}
+              />
+            )}
+          </div>
           <input
             required
             placeholder="Spesifikasi singkat"
