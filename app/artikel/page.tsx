@@ -29,6 +29,8 @@ const BASE_CATEGORIES = [
   "Tutorial & Panduan",
 ];
 
+const NEW_CATEGORY = "__new__";
+
 const emptyForm: ArticleInput = {
   slug: "",
   title: "",
@@ -87,6 +89,7 @@ function ArticleManager() {
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [customCategory, setCustomCategory] = useState(false);
   const [message, setMessage] = useState<Message>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -139,6 +142,7 @@ function ArticleManager() {
   }
 
   function resetForm() {
+    setCustomCategory(false);
     setForm(emptyForm);
     setEditingId(null);
     setSlugTouched(false);
@@ -146,6 +150,7 @@ function ArticleManager() {
   }
 
   function startEdit(a: Article) {
+    setCustomCategory(false);
     setEditingId(a.id);
     setSlugTouched(true);
     setTab("edit");
@@ -343,20 +348,37 @@ function ArticleManager() {
             </p>
           </div>
 
-          <div>
-            <input
-              required
-              list="article-categories"
-              placeholder="Kategori"
-              value={form.category}
-              onChange={(e) => setField("category", e.target.value)}
+          <div className="space-y-2">
+            <select
+              value={customCategory ? NEW_CATEGORY : form.category}
+              onChange={(e) => {
+                if (e.target.value === NEW_CATEGORY) {
+                  setCustomCategory(true);
+                  setField("category", "");
+                } else {
+                  setCustomCategory(false);
+                  setField("category", e.target.value);
+                }
+              }}
               className={inputClass}
-            />
-            <datalist id="article-categories">
+            >
               {categoryOptions.map((c) => (
-                <option key={c} value={c} />
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
-            </datalist>
+              <option value={NEW_CATEGORY}>+ Kategori lain...</option>
+            </select>
+            {customCategory && (
+              <input
+                required
+                autoFocus
+                placeholder="Nama kategori lain"
+                value={form.category}
+                onChange={(e) => setField("category", e.target.value)}
+                className={inputClass}
+              />
+            )}
           </div>
 
           <textarea
