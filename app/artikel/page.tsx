@@ -20,11 +20,13 @@ import {
   type ArticleInput,
 } from "@/lib/admin-api";
 
+// Harus sama persis dengan kategori di menu "Teknologi" situs publik.
 const BASE_CATEGORIES = [
-  "Aerial Mapping & RTK",
-  "Hardware & Propulsion",
-  "Avionics & Actuators",
-  "Panduan Rakit",
+  "Drone & UAV",
+  "Elektronik & IoT",
+  "Perangkat Cerdas",
+  "Inovasi Digital",
+  "Tutorial & Panduan",
 ];
 
 const emptyForm: ArticleInput = {

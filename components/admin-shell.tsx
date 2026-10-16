@@ -49,7 +49,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
           <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            BurnoDrone Admin
+            BurnoTech Admin
           </span>
           {session && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-300">
