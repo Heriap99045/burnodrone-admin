@@ -18,12 +18,15 @@ export type Block =
   | { t: "code"; v: string }
   | { t: "hr" };
 
-type InlineKind = "code" | "img" | "link" | "bold" | "em";
+type InlineKind = "esc" | "code" | "img" | "link" | "bolditalic" | "bold" | "em";
 
 const INLINE_PATTERNS: { kind: InlineKind; re: RegExp }[] = [
+  // Tanda \ di depan karakter khusus membuat karakter itu tampil apa adanya (dipakai editor visual).
+  { kind: "esc", re: /\\([\\`*[\]#+>.)!_-])/ },
   { kind: "code", re: /`([^`]+)`/ },
   { kind: "img", re: /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/ },
   { kind: "link", re: /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/ },
+  { kind: "bolditalic", re: /\*\*\*(.+?)\*\*\*/ },
   { kind: "bold", re: /\*\*(.+?)\*\*/ },
   { kind: "em", re: /\*([^*\s][^*]*?)\*/ },
 ];
@@ -49,7 +52,11 @@ export function parseInline(text: string): Inline[] {
     const { kind, m } = best;
     if (m.index > 0) out.push({ t: "text", v: rest.slice(0, m.index) });
 
-    if (kind === "code") out.push({ t: "code", v: m[1] });
+    if (kind === "esc") out.push({ t: "text", v: m[1] });
+    else if (kind === "code") out.push({ t: "code", v: m[1] });
+    else if (kind === "bolditalic") {
+      out.push({ t: "bold", c: [{ t: "em", c: parseInline(m[1]) }] });
+    }
     else if (kind === "img") out.push({ t: "img", alt: m[1], src: m[2] });
     else if (kind === "link") {
       out.push({ t: "link", href: m[2], title: m[3], c: parseInline(m[1]) });

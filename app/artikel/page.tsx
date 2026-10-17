@@ -3,12 +3,12 @@
 import {
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from "react";
 import { AdminShell } from "@/components/admin-shell";
+import { RichEditor } from "@/components/rich-editor";
 import { Markdown } from "@/lib/markdown";
 import {
   createArticle,
@@ -86,14 +86,12 @@ function ArticleManager() {
   const [form, setForm] = useState<ArticleInput>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
-  const [tab, setTab] = useState<"edit" | "preview">("edit");
+  const [tab, setTab] = useState<"visual" | "markdown" | "preview">("visual");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [customCategory, setCustomCategory] = useState(false);
   const [message, setMessage] = useState<Message>(null);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const inlineImageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -146,14 +144,14 @@ function ArticleManager() {
     setForm(emptyForm);
     setEditingId(null);
     setSlugTouched(false);
-    setTab("edit");
+    setTab("visual");
   }
 
   function startEdit(a: Article) {
     setCustomCategory(false);
     setEditingId(a.id);
     setSlugTouched(true);
-    setTab("edit");
+    setTab("visual");
     setForm({
       slug: a.slug,
       title: a.title,
@@ -165,68 +163,6 @@ function ArticleManager() {
     });
     setMessage(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  // Menyisipkan teks di posisi kursor / mengganti teks yang sedang dipilih.
-  function insertAtSelection(build: (selected: string) => string) {
-    const el = textareaRef.current;
-    const start = el?.selectionStart ?? form.content.length;
-    const end = el?.selectionEnd ?? form.content.length;
-    const text = build(form.content.slice(start, end));
-
-    setForm((prev) => ({
-      ...prev,
-      content: prev.content.slice(0, start) + text + prev.content.slice(end),
-    }));
-    requestAnimationFrame(() => {
-      el?.focus();
-      const pos = start + text.length;
-      el?.setSelectionRange(pos, pos);
-    });
-  }
-
-  function askUrl(label: string): string | null {
-    const url = window.prompt(label)?.trim();
-    if (!url) return null;
-    if (!/^https?:\/\//i.test(url)) {
-      window.alert("Alamat harus diawali http:// atau https://");
-      return null;
-    }
-    return url;
-  }
-
-  function addLink(affiliate: boolean) {
-    const url = askUrl(
-      affiliate
-        ? "Tempel link afiliasi Shopee/Tokopedia (https://...)"
-        : "Alamat link (https://...)",
-    );
-    if (!url) return;
-    insertAtSelection(
-      (sel) =>
-        `[${sel || (affiliate ? "Lihat produk di Shopee" : "teks link")}](${url}${
-          affiliate ? ' "affiliate"' : ""
-        })`,
-    );
-  }
-
-  async function onPickInlineImage(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    setMessage(null);
-    try {
-      const { url } = await uploadImage(file);
-      insertAtSelection(() => `\n\n![deskripsi gambar](${url})\n\n`);
-    } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Gagal mengunggah gambar.",
-      });
-    } finally {
-      setUploading(false);
-    }
   }
 
   async function onPickCover(e: ChangeEvent<HTMLInputElement>) {
@@ -264,6 +200,11 @@ function ArticleManager() {
         type: "error",
         text: 'Slug hanya boleh huruf kecil, angka, dan tanda "-".',
       });
+      return;
+    }
+
+    if (!form.content.trim()) {
+      setMessage({ type: "error", text: "Isi artikel belum ditulis." });
       return;
     }
 
@@ -423,118 +364,50 @@ function ArticleManager() {
 
           <div className="md:col-span-2 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setTab("edit")}
-                className={`${toolbarBtn} ${tab === "edit" ? "!bg-blue-600 !border-blue-500" : ""}`}
-              >
-                Tulis
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("preview")}
-                className={`${toolbarBtn} ${tab === "preview" ? "!bg-blue-600 !border-blue-500" : ""}`}
-              >
-                Pratinjau
-              </button>
-
-              {tab === "edit" && (
-                <>
-                  <span className="mx-1 h-5 w-px bg-slate-700" />
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    onClick={() =>
-                      insertAtSelection((s) => `\n\n## ${s || "Judul bagian"}\n\n`)
-                    }
-                  >
-                    H2
-                  </button>
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    onClick={() =>
-                      insertAtSelection((s) => `\n\n### ${s || "Sub bagian"}\n\n`)
-                    }
-                  >
-                    H3
-                  </button>
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    onClick={() => insertAtSelection((s) => `**${s || "teks tebal"}**`)}
-                  >
-                    Tebal
-                  </button>
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    onClick={() => insertAtSelection((s) => `*${s || "teks miring"}*`)}
-                  >
-                    Miring
-                  </button>
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    onClick={() =>
-                      insertAtSelection((s) =>
-                        s
-                          ? s
-                              .split("\n")
-                              .map((l) => `- ${l}`)
-                              .join("\n")
-                          : "\n\n- butir pertama\n- butir kedua\n\n",
-                      )
-                    }
-                  >
-                    Daftar
-                  </button>
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    onClick={() => addLink(false)}
-                  >
-                    Link
-                  </button>
-                  <button
-                    type="button"
-                    className={`${toolbarBtn} !border-emerald-600/70 !text-emerald-300`}
-                    onClick={() => addLink(true)}
-                  >
-                    Link afiliasi
-                  </button>
-                  <button
-                    type="button"
-                    className={toolbarBtn}
-                    disabled={uploading}
-                    onClick={() => inlineImageRef.current?.click()}
-                  >
-                    Gambar
-                  </button>
-                  <input
-                    ref={inlineImageRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={onPickInlineImage}
-                  />
-                </>
-              )}
+              {(
+                [
+                  ["visual", "Tulis"],
+                  ["markdown", "Markdown (lanjutan)"],
+                  ["preview", "Pratinjau"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTab(key)}
+                  className={`${toolbarBtn} ${tab === key ? "!bg-blue-600 !border-blue-500" : ""}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            {tab === "edit" ? (
+            {tab === "visual" && (
+              <>
+                <RichEditor
+                  value={form.content}
+                  onChange={(markdown) => setField("content", markdown)}
+                  onError={(text) => setMessage({ type: "error", text })}
+                />
+                <p className="text-xs text-slate-500">
+                  Tempel teks dari Word atau Google Docs langsung ke kotak di atas; judul, daftar, dan teks
+                  tebal ikut terbawa. Gunakan tombol Link afiliasi untuk link Shopee atau Tokopedia
+                  (tampil hijau putus-putus).
+                </p>
+              </>
+            )}
+
+            {tab === "markdown" && (
               <textarea
-                ref={textareaRef}
-                required
                 rows={18}
-                placeholder={
-                  "Tulis artikel dengan Markdown.\n\n## Judul bagian\nParagraf biasa, **tebal**, *miring*, `GPS_TYPE = 2`.\n\nSisipkan link afiliasi dengan tombol \"Link afiliasi\"."
-                }
                 value={form.content}
                 onChange={(e) => setField("content", e.target.value)}
                 className={`${inputClass} font-mono leading-relaxed`}
+                aria-label="Isi artikel dalam Markdown"
               />
-            ) : (
+            )}
+
+            {tab === "preview" && (
               <div className="rounded-lg border border-slate-700 bg-slate-900 p-5 min-h-48">
                 {form.content.trim() ? (
                   <Markdown source={form.content} />
