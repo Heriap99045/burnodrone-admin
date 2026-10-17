@@ -10,6 +10,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
+    "@tiptap/extension-image": "^2.11.0",
+    "@tiptap/extension-link": "^2.11.0",
+    "@tiptap/extension-placeholder": "^2.11.0",
+    "@tiptap/pm": "^2.11.0",
+    "@tiptap/react": "^2.11.0",
+    "@tiptap/starter-kit": "^2.11.0",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
